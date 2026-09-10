@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+tmp_*.json
+gaps_debug.json
+gaps_before.json
+gaps_after.json

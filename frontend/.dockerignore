@@ -1,0 +1,10 @@
+node_modules/
+dist/
+smoke-test.mjs
+screenshot-*.png
+test-results/
+
+# 로컬 개발용 .env(VITE_API_BASE=http://localhost:8000)가 이미지에 들어가면
+# Vite가 빌드 args보다 이 값을 우선 사용해버려서 배포 빌드가 절대경로로 굳어버린다.
+.env
+.env.local

@@ -1,0 +1,60 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: aisw-db
+    environment:
+      POSTGRES_USER: aisw
+      POSTGRES_PASSWORD: aisw
+      POSTGRES_DB: aisw
+      TZ: Asia/Seoul
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aisw -d aisw"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: aisw-backend
+    env_file:
+      - ./backend/.env
+    environment:
+      # 컨테이너 네트워크 안에서는 db 서비스명으로 접속한다 (.env의 localhost 값을 덮어씀)
+      DATABASE_URL: postgresql+asyncpg://aisw:aisw@db:5432/aisw
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8803:8000"
+    volumes:
+      - hf_cache:/app/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE: ""
+    container_name: aisw-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8802:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  hf_cache:

@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Env
+.env
+.env.local
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# OS / editor
+.DS_Store
+*.log
+
+# Local models cache (sentence-transformers)
+backend/.cache/
+
+# Playwright smoke-test artifacts
+frontend/screenshot-*.png
+frontend/test-results/
+
+# DB dumps (실제 대화 로그/관리자 해시가 들어있어 커밋하지 않음, 배포 시 수동 전달)
+*.sql
+!alembic/**/*.sql
+
+# Claude Code 개인 로컬 설정 (팀과 공유 안 함)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# 배포용 압축 산출물 (소스 아님, 매번 새로 생성)
+*.zip
