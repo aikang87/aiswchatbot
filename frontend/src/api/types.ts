@@ -1,6 +1,7 @@
 export interface DomainMeta {
   name: string;
   description: string;
+  session_max_questions: number;
 }
 
 export interface Citation {

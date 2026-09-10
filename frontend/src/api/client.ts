@@ -70,7 +70,7 @@ export type StreamEvent =
   | { type: "citations"; data: { rank: number; question: string; answer: string; score: number }[] }
   | { type: "delta"; data: string }
   | { type: "blocked"; data: { reason?: string; top_score?: number } }
-  | { type: "done"; data: Record<string, never> };
+  | { type: "done"; data: { message_id?: number; question_count?: number; question_limit?: number } };
 
 export async function streamMessage(
   conversationId: number,

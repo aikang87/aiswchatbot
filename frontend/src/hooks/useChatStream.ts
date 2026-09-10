@@ -16,6 +16,7 @@ export function useChatStream() {
   const [ready, setReady] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [questionCount, setQuestionCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export function useChatStream() {
               serverId: m.id,
             })),
           );
+          setQuestionCount(history.filter((m) => m.role === "user").length);
           setReady(true);
           return;
         } catch {
@@ -95,10 +97,14 @@ export function useChatStream() {
               blocked = true;
               blockReason = (event.data as { reason?: string }).reason;
             } else if (event.type === "done") {
-              const serverId = (event.data as { message_id?: number }).message_id;
+              const { message_id: serverId, question_count } = event.data as {
+                message_id?: number;
+                question_count?: number;
+              };
               setMessages((prev) =>
                 prev.map((m) => (m.id === assistantId ? { ...m, pending: false, blocked, blockReason, serverId } : m)),
               );
+              if (typeof question_count === "number") setQuestionCount(question_count);
             }
           },
           controller.signal,
@@ -122,5 +128,5 @@ export function useChatStream() {
     });
   }, []);
 
-  return { messages, ready, sending, error, send, setFeedback };
+  return { messages, ready, sending, error, questionCount, send, setFeedback };
 }

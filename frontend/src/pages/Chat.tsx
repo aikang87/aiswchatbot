@@ -5,7 +5,7 @@ import { useChatStream } from "../hooks/useChatStream";
 import { MessageBubble } from "../components/MessageBubble";
 
 export function Chat() {
-  const { messages, ready, sending, error, send, setFeedback } = useChatStream();
+  const { messages, ready, sending, error, questionCount, send, setFeedback } = useChatStream();
   const { data: domain } = useQuery({ queryKey: ["domain-meta"], queryFn: getDomainMeta });
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -30,13 +30,20 @@ export function Chat() {
         카드가 max-height에서 멈추고 가운데 행(overflow-y-auto)만 내부 스크롤된다.
       */}
       <div className="grid max-h-[min(85svh,700px)] w-full max-w-2xl grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <header className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-          <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            {domain?.name ?? "입학상담 챗봇"}
-          </h1>
-          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-            지원자격 · 전형일정 · 등록금 · 커리큘럼 · 취업 관련 질문을 물어보세요
-          </p>
+        <header className="flex items-start justify-between gap-2 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
+          <div>
+            <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+              {domain?.name ?? "입학상담 챗봇"}
+            </h1>
+            <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+              지원자격 · 전형일정 · 등록금 · 커리큘럼 · 취업 관련 질문을 물어보세요
+            </p>
+          </div>
+          {domain && (
+            <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+              질문 {questionCount} / {domain.session_max_questions}
+            </span>
+          )}
         </header>
 
         <div className="min-h-0 space-y-4 overflow-y-auto px-4 py-4">

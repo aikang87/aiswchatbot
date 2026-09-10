@@ -1,19 +1,21 @@
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_domain, get_or_create_session_id, read_session_id, set_session_cookie
+from app.config import get_settings
 from app.db.models import Conversation, Domain, Feedback, Message
 from app.db.session import async_session_factory, get_db
 from app.services.chat import stream_turn
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
+settings = get_settings()
 
 
 class CreateSessionResponse(BaseModel):
@@ -55,6 +57,31 @@ async def _get_owned_conversation(
     return conversation
 
 
+async def _check_session_limits(session: AsyncSession, conversation: Conversation) -> int:
+    """세션 만료/질문 한도를 검사하고, 이번 질문 이전까지 쌓인 질문 수를 반환한다."""
+    age = datetime.now(timezone.utc) - conversation.started_at
+    if age > timedelta(hours=settings.session_max_age_hours):
+        raise HTTPException(
+            status_code=403,
+            detail=f"세션 유지 시간({settings.session_max_age_hours}시간)이 지났습니다. 새 대화를 시작해주세요.",
+        )
+
+    question_count = (
+        await session.scalar(
+            select(func.count())
+            .select_from(Message)
+            .where(Message.conversation_id == conversation.id, Message.role == "user")
+        )
+        or 0
+    )
+    if question_count >= settings.session_max_questions:
+        raise HTTPException(
+            status_code=403,
+            detail=f"세션당 질문 한도({settings.session_max_questions}개)를 초과했습니다. 새 대화를 시작해주세요.",
+        )
+    return question_count
+
+
 @router.post("/messages")
 async def send_message(
     payload: SendMessageRequest,
@@ -63,7 +90,8 @@ async def send_message(
     domain: Domain = Depends(get_current_domain),
 ) -> StreamingResponse:
     session_id = read_session_id(request)
-    await _get_owned_conversation(session, payload.conversation_id, session_id)  # 소유권만 미리 확인 (404 조기 반환)
+    conversation = await _get_owned_conversation(session, payload.conversation_id, session_id)  # 소유권만 미리 확인 (404 조기 반환)
+    prior_question_count = await _check_session_limits(session, conversation)
 
     async def event_stream():
         # StreamingResponse의 바디는 응답 반환 이후 소비되는데, 그 시점엔 Depends(get_db) 세션이
@@ -72,7 +100,14 @@ async def send_message(
             conversation = await db.get(Conversation, payload.conversation_id)
             turn_domain = await db.get(Domain, domain.id)
             async for event in stream_turn(db, conversation, turn_domain, payload.content):
-                yield f"event: {event['type']}\ndata: {json.dumps(event['data'], ensure_ascii=False)}\n\n"
+                data = event["data"]
+                if event["type"] == "done":
+                    data = {
+                        **data,
+                        "question_count": prior_question_count + 1,
+                        "question_limit": settings.session_max_questions,
+                    }
+                yield f"event: {event['type']}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
     resp = StreamingResponse(event_stream(), media_type="text/event-stream")
     set_session_cookie(resp, session_id)  # _get_owned_conversation이 통과했으므로 session_id는 not None

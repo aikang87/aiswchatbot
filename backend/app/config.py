@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     session_cookie_name: str = "aisw_sid"
     session_cookie_secure: bool = False
 
+    # 세션(Conversation) 단위 제한
+    session_max_age_hours: int = 3
+    session_max_questions: int = 100
+
     # App
     app_env: str = "development"
     cors_origins: str = "http://localhost:5173"
