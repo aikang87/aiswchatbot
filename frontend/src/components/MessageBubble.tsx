@@ -6,15 +6,28 @@ interface Props {
   onFeedback?: (rating: 1 | -1) => void;
 }
 
-const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+// 한글 음절/자모는 URL에 쓰이지 않으므로 여기서 매칭을 끊는다.
+// (예: "...(https://a.com)에서" 처럼 공백 없이 조사가 바로 붙는 경우)
+const URL_REGEX = /(https?:\/\/[^\s"'<>ᄀ-ᇿ㄰-㆏가-힣]+)/g;
+const TRAILING_PUNCT = ".,!?;:]}'\"”’";
 
 function linkify(text: string) {
   return text.split(URL_REGEX).map((part, i) => {
     if (i % 2 === 0) return part;
-    // URL 끝에 붙은 문장부호는 링크에서 제외한다 (예: "...사이트(https://a.com)를 참고")
-    const match = part.match(/^(.*?)([.,!?;:)\]}'"”’]*)$/);
-    const url = match ? match[1] : part;
-    const trailing = match ? match[2] : "";
+    let url = part;
+    let trailing = "";
+    // 문장부호나 짝이 맞지 않는 닫는 괄호는 링크에서 제외한다
+    while (url.length > 0) {
+      const last = url[url.length - 1];
+      const opens = (url.match(/\(/g) ?? []).length;
+      const closes = (url.match(/\)/g) ?? []).length;
+      if (TRAILING_PUNCT.includes(last) || (last === ")" && closes > opens)) {
+        trailing = last + trailing;
+        url = url.slice(0, -1);
+      } else {
+        break;
+      }
+    }
     return (
       <span key={i}>
         <a href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:opacity-80">
