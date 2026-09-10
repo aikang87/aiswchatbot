@@ -12,7 +12,7 @@ from app.services.guardrail import stage1_check
 from app.services.retrieval import RetrievedChunk, hybrid_search, top1_similarity
 
 HISTORY_TURNS = 6  # 최근 N턴(사용자+어시스턴트 합쳐 최대 2*N개 메시지)을 컨텍스트에 포함
-TOP_K = 5
+TOP_K = 8
 
 
 def _build_context_block(chunks: list[RetrievedChunk]) -> str:
