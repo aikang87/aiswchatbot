@@ -1,3 +1,7 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import type { Components } from "react-markdown";
 import type { ChatMessage } from "../api/types";
 import { BlockedNotice } from "./BlockedNotice";
 
@@ -11,12 +15,12 @@ interface Props {
 const URL_REGEX = /(https?:\/\/[^\s"'<>ᄀ-ᇿ㄰-㆏가-힣]+)/g;
 const TRAILING_PUNCT = ".,!?;:]}'\"”’";
 
-function linkify(text: string) {
-  return text.split(URL_REGEX).map((part, i) => {
-    if (i % 2 === 0) return part;
-    let url = part;
+// 답변 속 bare URL을 마크다운 링크 문법으로 바꿔서 react-markdown이 인식하게 한다.
+// (react-markdown/remark-gfm의 기본 autolink는 공백 없이 붙은 한글 조사까지 URL에 포함시켜버린다)
+function preprocessUrls(text: string): string {
+  return text.replace(URL_REGEX, (match) => {
+    let url = match;
     let trailing = "";
-    // 문장부호나 짝이 맞지 않는 닫는 괄호는 링크에서 제외한다
     while (url.length > 0) {
       const last = url[url.length - 1];
       const opens = (url.match(/\(/g) ?? []).length;
@@ -28,15 +32,57 @@ function linkify(text: string) {
         break;
       }
     }
-    return (
-      <span key={i}>
-        <a href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:opacity-80">
-          {url}
-        </a>
-        {trailing}
-      </span>
-    );
+    const label = url.replace(/\\/g, "\\\\").replace(/\[/g, "\\[").replace(/\]/g, "\\]").replace(/\*/g, "\\*");
+    const dest = url.replace(/\\/g, "\\\\").replace(/</g, "%3C").replace(/>/g, "%3E");
+    return `[${label}](<${dest}>)${trailing}`;
   });
+}
+
+const markdownComponents: Components = {
+  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+  a: ({ children, href }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline underline-offset-2 hover:opacity-80"
+    >
+      {children}
+    </a>
+  ),
+  ul: ({ children }) => <ul className="my-1 list-disc space-y-0.5 pl-5">{children}</ul>,
+  ol: ({ children }) => <ol className="my-1 list-decimal space-y-0.5 pl-5">{children}</ol>,
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  blockquote: ({ children }) => (
+    <blockquote className="my-1 border-l-2 border-current/30 pl-2 italic opacity-90">{children}</blockquote>
+  ),
+  hr: () => <hr className="my-2 border-current/20" />,
+  h1: ({ children }) => <p className="mt-1 mb-1 text-lg font-semibold">{children}</p>,
+  h2: ({ children }) => <p className="mt-1 mb-1 text-base font-semibold">{children}</p>,
+  h3: ({ children }) => <p className="mt-1 mb-1 text-[15px] font-semibold">{children}</p>,
+  code: ({ children }) => (
+    <code className="rounded bg-black/10 px-1 py-0.5 font-mono text-[13px] dark:bg-white/10">{children}</code>
+  ),
+  pre: ({ children }) => (
+    <pre className="my-1 overflow-x-auto rounded-lg bg-black/5 p-2 font-mono text-[13px] dark:bg-white/5">
+      {children}
+    </pre>
+  ),
+  table: ({ children }) => (
+    <div className="my-1 overflow-x-auto">
+      <table className="border-collapse text-[13px]">{children}</table>
+    </div>
+  ),
+  th: ({ children }) => <th className="border border-current/20 px-2 py-1 text-left">{children}</th>,
+  td: ({ children }) => <td className="border border-current/20 px-2 py-1">{children}</td>,
+};
+
+function MarkdownContent({ text }: { text: string }) {
+  return (
+    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
+      {preprocessUrls(text)}
+    </ReactMarkdown>
+  );
 }
 
 export function MessageBubble({ message, onFeedback }: Props) {
@@ -46,7 +92,7 @@ export function MessageBubble({ message, onFeedback }: Props) {
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[80%] ${isUser ? "items-end" : "items-start"} flex flex-col`}>
         <div
-          className={`rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-wrap break-words ${
+          className={`rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed break-words ${
             isUser
               ? "bg-blue-600 text-white rounded-br-sm"
               : message.blocked
@@ -61,7 +107,7 @@ export function MessageBubble({ message, onFeedback }: Props) {
               <Dot delay="0.3s" />
             </span>
           ) : (
-            linkify(message.content)
+            <MarkdownContent text={message.content} />
           )}
         </div>
 
