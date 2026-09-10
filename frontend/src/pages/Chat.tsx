@@ -33,7 +33,7 @@ export function Chat() {
               {domain?.name ?? "입학상담 챗봇"}
             </h1>
             <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
-              지원자격 · 전형일정 · 등록금 · 커리큘럼 · 취업 관련 질문을 물어보세요
+              지원자격 · 전형일정 · 등록금 · 커리큘럼 · 취업에 관해 물어보세요.
             </p>
           </div>
           {domain && (
@@ -67,7 +67,7 @@ export function Chat() {
             disabled={!ready || sending}
             placeholder="메시지를 입력하세요"
             autoFocus
-            className="flex-1 rounded-full border border-neutral-300 px-4 py-2 text-sm outline-none focus:border-blue-500 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900"
+            className="flex-1 rounded-full border border-neutral-300 px-4 py-2 text-base outline-none focus:border-blue-500 disabled:opacity-50 sm:text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
           <button
             type="submit"

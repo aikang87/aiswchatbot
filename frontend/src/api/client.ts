@@ -178,6 +178,13 @@ export async function getAdminConversation(id: number): Promise<ConversationDeta
   return adminFetch(`/api/admin/conversations/${id}`);
 }
 
+export async function deleteConversations(conversationIds: number[]): Promise<void> {
+  await adminFetch(`/api/admin/conversations/delete`, {
+    method: "POST",
+    body: JSON.stringify({ conversation_ids: conversationIds }),
+  });
+}
+
 export async function getGaps(limit = 20): Promise<GapCluster[]> {
   return adminFetch(`/api/admin/gaps?limit=${limit}`);
 }

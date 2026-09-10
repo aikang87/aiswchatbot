@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_domain, require_admin
@@ -113,6 +113,36 @@ async def list_conversations(
             }
         )
     return result
+
+
+class DeleteConversationsRequest(BaseModel):
+    conversation_ids: list[int]
+
+
+@router.post("/conversations/delete")
+async def delete_conversations(
+    payload: DeleteConversationsRequest,
+    session: AsyncSession = Depends(get_db),
+    domain: Domain = Depends(get_current_domain),
+    admin: AdminUser = Depends(require_admin),
+) -> dict:
+    if not payload.conversation_ids:
+        raise HTTPException(status_code=400, detail="conversation_ids must not be empty")
+
+    result = await session.execute(
+        delete(Conversation).where(
+            Conversation.id.in_(payload.conversation_ids), Conversation.domain_id == domain.id
+        )
+    )
+    session.add(
+        AuditLog(
+            admin_id=admin.id,
+            action="conversations.delete",
+            target=",".join(str(i) for i in payload.conversation_ids),
+        )
+    )
+    await session.commit()
+    return {"status": "ok", "deleted": result.rowcount}
 
 
 @router.get("/conversations/{conversation_id}")
