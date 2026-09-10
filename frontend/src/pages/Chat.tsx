@@ -31,8 +31,8 @@ export function Chat() {
       */}
       <div className="grid max-h-[min(85svh,700px)] w-full max-w-2xl grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <header className="flex items-start justify-between gap-2 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-          <div>
-            <h1 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
               {domain?.name ?? "입학상담 챗봇"}
             </h1>
             <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
