@@ -27,7 +27,7 @@ export function Chat() {
     // 세로로 꽉 차게 고정해 헤더·입력창이 항상 보이게 하되, 좌우로는 약간의 여백을 두어
     // 너무 타이트해 보이지 않게 한다. sm 이상에서는 기존처럼 가운데 뜬 카드로 보여준다.
     <div className="flex h-dvh flex-col bg-neutral-50 px-2 dark:bg-neutral-950 sm:h-auto sm:min-h-svh sm:items-center sm:justify-center sm:px-4 sm:py-6">
-      <div className="grid h-full w-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:h-auto sm:max-h-[min(85svh,700px)] sm:max-w-2xl">
+      <div className="grid h-full w-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:h-auto sm:max-h-[min(85svh,700px)] sm:max-w-2xl">
         <header className="flex items-start justify-between gap-2 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
