@@ -23,13 +23,10 @@ export function Chat() {
   }
 
   return (
-    <div className="flex min-h-svh items-start justify-center bg-neutral-50 px-4 py-10 dark:bg-neutral-950 sm:items-center sm:py-6">
-      {/*
-        grid-rows-[auto_1fr_auto] + max-height(대신 height는 안 씀): 메시지가 적을 때는
-        카드 전체 높이가 내용만큼만 작아져서 입력창이 바로 밑에 붙고, 메시지가 많아지면
-        카드가 max-height에서 멈추고 가운데 행(overflow-y-auto)만 내부 스크롤된다.
-      */}
-      <div className="grid max-h-[min(85svh,700px)] w-full max-w-2xl grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+    // 모바일(<sm)에서는 카드가 화면(dvh: 키보드/주소창으로 줄어든 실제 보이는 높이 기준)에
+    // 꽉 차게 고정해 헤더·입력창이 항상 보이게 하고, sm 이상에서는 기존처럼 가운데 뜬 카드로 보여준다.
+    <div className="flex h-dvh flex-col bg-white dark:bg-neutral-900 sm:h-auto sm:min-h-svh sm:items-center sm:justify-center sm:bg-neutral-50 sm:px-4 sm:py-6 sm:dark:bg-neutral-950">
+      <div className="grid h-full w-full grid-rows-[auto_1fr_auto] overflow-hidden sm:h-auto sm:max-h-[min(85svh,700px)] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-neutral-200 sm:bg-white sm:shadow-sm sm:dark:border-neutral-800 sm:dark:bg-neutral-900">
         <header className="flex items-start justify-between gap-2 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
