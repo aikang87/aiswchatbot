@@ -28,7 +28,7 @@ export function Chat() {
     // 너무 타이트해 보이지 않게 한다. sm 이상에서는 기존처럼 가운데 뜬 카드로 보여준다.
     <div className="flex h-dvh flex-col bg-neutral-50 px-2 dark:bg-neutral-950 sm:h-auto sm:min-h-svh sm:items-center sm:justify-center sm:px-4 sm:py-6">
       <div className="grid h-full w-full grid-rows-[auto_1fr_auto] overflow-hidden rounded-2xl border border-neutral-200 bg-white p-2 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:h-auto sm:max-h-[min(85svh,700px)] sm:max-w-2xl">
-        <header className="flex items-start justify-between gap-2 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
+        <header className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1 border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
           <div className="min-w-0">
             <h1 className="truncate text-sm font-semibold text-neutral-900 dark:text-neutral-100">
               {domain?.name ?? "입학상담 챗봇"}
@@ -68,12 +68,12 @@ export function Chat() {
             disabled={!ready || sending}
             placeholder="메시지를 입력하세요"
             autoFocus
-            className="flex-1 rounded-full border border-neutral-300 px-4 py-2 text-base outline-none focus:border-blue-500 disabled:opacity-50 sm:text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            className="min-w-0 flex-1 rounded-full border border-neutral-300 px-4 py-2 text-base outline-none focus:border-blue-500 disabled:opacity-50 sm:text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
           <button
             type="submit"
             disabled={!ready || sending || !input.trim()}
-            className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+            className="shrink-0 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
           >
             보내기
           </button>
