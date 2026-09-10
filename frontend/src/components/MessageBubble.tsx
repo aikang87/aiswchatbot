@@ -6,6 +6,26 @@ interface Props {
   onFeedback?: (rating: 1 | -1) => void;
 }
 
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+
+function linkify(text: string) {
+  return text.split(URL_REGEX).map((part, i) => {
+    if (i % 2 === 0) return part;
+    // URL 끝에 붙은 문장부호는 링크에서 제외한다 (예: "...사이트(https://a.com)를 참고")
+    const match = part.match(/^(.*?)([.,!?;:)\]}'"”’]*)$/);
+    const url = match ? match[1] : part;
+    const trailing = match ? match[2] : "";
+    return (
+      <span key={i}>
+        <a href={url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:opacity-80">
+          {url}
+        </a>
+        {trailing}
+      </span>
+    );
+  });
+}
+
 export function MessageBubble({ message, onFeedback }: Props) {
   const isUser = message.role === "user";
 
@@ -28,7 +48,7 @@ export function MessageBubble({ message, onFeedback }: Props) {
               <Dot delay="0.3s" />
             </span>
           ) : (
-            message.content
+            linkify(message.content)
           )}
         </div>
 
