@@ -10,6 +10,15 @@ interface Props {
   onFeedback?: (rating: 1 | -1) => void;
 }
 
+// 백엔드는 지식 공백(grounding 실패) 탐지에 답변 속 [1], [4] 같은 인용 번호 유무를 쓰므로
+// 프롬프트/DB에는 그대로 남겨두고, 화면에 보여줄 때만 제거한다.
+function stripCitationMarkers(text: string): string {
+  return text
+    .replace(/\s*\[\d+\]/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 // 한글 음절/자모는 URL에 쓰이지 않으므로 여기서 매칭을 끊는다.
 // (예: "...(https://a.com)에서" 처럼 공백 없이 조사가 바로 붙는 경우)
 const URL_REGEX = /(https?:\/\/[^\s"'<>ᄀ-ᇿ㄰-㆏가-힣]+)/g;
@@ -80,7 +89,7 @@ const markdownComponents: Components = {
 function MarkdownContent({ text }: { text: string }) {
   return (
     <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
-      {preprocessUrls(text)}
+      {preprocessUrls(stripCitationMarkers(text))}
     </ReactMarkdown>
   );
 }
