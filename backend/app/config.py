@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     # 세션(Conversation) 단위 제한
     session_max_age_hours: int = 3
     session_max_questions: int = 100
+    # 이 시간이 지나면 세션 만료 안내로 끝나지 않고 쿠키/대화를 통째로 초기화한다
+    session_hard_reset_hours: int = 24
 
     # App
     app_env: str = "development"

@@ -16,19 +16,31 @@ const ADMIN_TOKEN_KEY = "aisw_admin_token";
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
-async function parseErrorDetail(res: Response): Promise<string> {
+// detail은 대부분 평문 문자열이지만, 세션 만료류 에러는 프론트가 코드로 분기할 수 있게
+// {code, message} 객체로 온다 (backend/app/api/chat.py 참고). 둘 다 처리한다.
+async function parseErrorBody(res: Response): Promise<{ message: string; code?: string }> {
   try {
     const body = await res.json();
-    return body.detail ?? res.statusText;
+    if (body.detail && typeof body.detail === "object") {
+      return { message: body.detail.message ?? res.statusText, code: body.detail.code };
+    }
+    return { message: body.detail ?? res.statusText };
   } catch {
-    return res.statusText;
+    return { message: res.statusText };
   }
+}
+
+async function toApiError(res: Response): Promise<ApiError> {
+  const { message, code } = await parseErrorBody(res);
+  return new ApiError(res.status, message, code);
 }
 
 // ---------- 클라이언트(익명 세션) API ----------
@@ -38,13 +50,23 @@ export async function createSession(): Promise<{ conversation_id: number; domain
     method: "POST",
     credentials: "include",
   });
-  if (!res.ok) throw new ApiError(res.status, await parseErrorDetail(res));
+  if (!res.ok) throw await toApiError(res);
+  return res.json();
+}
+
+// 기존 session_id 쿠키를 버리고 완전히 새로 발급받으며 대화도 새로 시작한다 (하드 리셋).
+export async function resetSession(): Promise<{ conversation_id: number; domain_name: string }> {
+  const res = await fetch(`${API_BASE}/api/chat/sessions/reset`, {
+    method: "POST",
+    credentials: "include",
+  });
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
 export async function getDomainMeta(): Promise<DomainMeta> {
   const res = await fetch(`${API_BASE}/api/meta/domain`, { credentials: "include" });
-  if (!res.ok) throw new ApiError(res.status, await parseErrorDetail(res));
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
@@ -52,7 +74,7 @@ export async function getConversationMessages(conversationId: number): Promise<S
   const res = await fetch(`${API_BASE}/api/chat/conversations/${conversationId}/messages`, {
     credentials: "include",
   });
-  if (!res.ok) throw new ApiError(res.status, await parseErrorDetail(res));
+  if (!res.ok) throw await toApiError(res);
   return res.json();
 }
 
@@ -63,7 +85,7 @@ export async function submitFeedback(messageId: number, rating: 1 | -1): Promise
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ rating }),
   });
-  if (!res.ok) throw new ApiError(res.status, await parseErrorDetail(res));
+  if (!res.ok) throw await toApiError(res);
 }
 
 export type StreamEvent =
@@ -85,7 +107,7 @@ export async function streamMessage(
     body: JSON.stringify({ conversation_id: conversationId, content }),
     signal,
   });
-  if (!res.ok || !res.body) throw new ApiError(res.status, await parseErrorDetail(res));
+  if (!res.ok || !res.body) throw await toApiError(res);
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -141,7 +163,7 @@ async function adminFetch<T>(path: string, options: RequestInit = {}): Promise<T
       ...options.headers,
     },
   });
-  if (!res.ok) throw new ApiError(res.status, await parseErrorDetail(res));
+  if (!res.ok) throw await toApiError(res);
   if (res.status === 204) return undefined as T;
   return res.json();
 }
@@ -152,7 +174,7 @@ export async function adminLogin(email: string, password: string): Promise<strin
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
-  if (!res.ok) throw new ApiError(res.status, await parseErrorDetail(res));
+  if (!res.ok) throw await toApiError(res);
   const body = await res.json();
   return body.access_token as string;
 }

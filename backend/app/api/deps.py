@@ -43,6 +43,13 @@ async def get_or_create_session_id(request: Request, response: Response) -> uuid
     return session_id
 
 
+def issue_new_session_id(response: Response) -> uuid.UUID:
+    """기존 쿠키 값과 무관하게 새 session_id를 발급하고 쿠키를 덮어쓴다 (하드 리셋용)."""
+    session_id = uuid.uuid4()
+    set_session_cookie(response, session_id)
+    return session_id
+
+
 async def get_current_domain(session: AsyncSession = Depends(get_db)) -> Domain:
     """MVP: 도메인이 1개뿐이라고 가정하고 첫 번째 도메인을 반환한다."""
     domain = await session.scalar(select(Domain).order_by(Domain.id).limit(1))

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createSession, getConversationMessages, streamMessage, submitFeedback } from "../api/client";
+import { ApiError, createSession, getConversationMessages, resetSession, streamMessage, submitFeedback } from "../api/client";
 import type { ChatMessage, Citation } from "../api/types";
 
 const CONVERSATION_KEY = "aisw_conversation_id";
@@ -22,6 +22,20 @@ export function useChatStream() {
   useEffect(() => {
     let cancelled = false;
 
+    async function startFresh(creator: () => Promise<{ conversation_id: number }>) {
+      try {
+        const session = await creator();
+        if (cancelled) return;
+        localStorage.setItem(CONVERSATION_KEY, String(session.conversation_id));
+        setConversationId(session.conversation_id);
+        setMessages([]);
+        setQuestionCount(0);
+        setReady(true);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "세션 생성에 실패했습니다");
+      }
+    }
+
     async function bootstrap() {
       const stored = localStorage.getItem(CONVERSATION_KEY);
       if (stored) {
@@ -42,18 +56,13 @@ export function useChatStream() {
           setReady(true);
           return;
         } catch {
+          // 대화가 사라졌거나(404) 24시간 하드 만료(410)됐을 수 있으니 쿠키까지 통째로 새로 받는다.
           localStorage.removeItem(CONVERSATION_KEY);
+          await startFresh(resetSession);
+          return;
         }
       }
-      try {
-        const session = await createSession();
-        if (cancelled) return;
-        localStorage.setItem(CONVERSATION_KEY, String(session.conversation_id));
-        setConversationId(session.conversation_id);
-        setReady(true);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "세션 생성에 실패했습니다");
-      }
+      await startFresh(createSession);
     }
 
     bootstrap();
@@ -110,10 +119,24 @@ export function useChatStream() {
           controller.signal,
         );
       } catch (e) {
-        setError(e instanceof Error ? e.message : "메시지 전송에 실패했습니다");
-        setMessages((prev) =>
-          prev.map((m) => (m.id === assistantId ? { ...m, pending: false, content: m.content || "(오류가 발생했습니다)" } : m)),
-        );
+        if (e instanceof ApiError && e.code === "session_hard_expired") {
+          // 24시간 넘게 지난 세션 — 쿠키/대화를 통째로 새로 받고 화면도 새로 시작한다.
+          localStorage.removeItem(CONVERSATION_KEY);
+          try {
+            const session = await resetSession();
+            setConversationId(session.conversation_id);
+            setMessages([]);
+            setQuestionCount(0);
+            setError("세션이 만료되어 새 대화를 시작했습니다. 다시 입력해 주세요.");
+          } catch (resetErr) {
+            setError(resetErr instanceof Error ? resetErr.message : "세션 초기화에 실패했습니다");
+          }
+        } else {
+          setError(e instanceof Error ? e.message : "메시지 전송에 실패했습니다");
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, pending: false, content: m.content || "(오류가 발생했습니다)" } : m)),
+          );
+        }
       } finally {
         setSending(false);
       }
