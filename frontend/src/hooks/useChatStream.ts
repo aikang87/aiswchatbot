@@ -10,6 +10,16 @@ function nextId(): string {
   return `local-${idCounter}`;
 }
 
+// "N시간 M분" 형태로 남은 시간을 표시한다 (예: 3시간 세션 만료 후 24시간 하드 리셋까지 남은 시간).
+function formatRemaining(availableAt: string): string {
+  const ms = new Date(availableAt).getTime() - Date.now();
+  if (ms <= 0) return "곧";
+  const totalMinutes = Math.ceil(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0 ? `${hours}시간 ${minutes}분` : `${minutes}분`;
+}
+
 export function useChatStream() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<number | null>(null);
@@ -132,7 +142,11 @@ export function useChatStream() {
             setError(resetErr instanceof Error ? resetErr.message : "세션 초기화에 실패했습니다");
           }
         } else {
-          setError(e instanceof Error ? e.message : "메시지 전송에 실패했습니다");
+          let message = e instanceof Error ? e.message : "메시지 전송에 실패했습니다";
+          if (e instanceof ApiError && e.code === "session_soft_expired" && e.availableAt) {
+            message += ` (${formatRemaining(e.availableAt)} 후 다시 이용 가능)`;
+          }
+          setError(message);
           setMessages((prev) =>
             prev.map((m) => (m.id === assistantId ? { ...m, pending: false, content: m.content || "(오류가 발생했습니다)" } : m)),
           );

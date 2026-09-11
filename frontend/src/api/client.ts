@@ -17,20 +17,26 @@ const ADMIN_TOKEN_KEY = "aisw_admin_token";
 export class ApiError extends Error {
   status: number;
   code?: string;
-  constructor(status: number, message: string, code?: string) {
+  availableAt?: string;
+  constructor(status: number, message: string, code?: string, availableAt?: string) {
     super(message);
     this.status = status;
     this.code = code;
+    this.availableAt = availableAt;
   }
 }
 
-// detail은 대부분 평문 문자열이지만, 세션 만료류 에러는 프론트가 코드로 분기할 수 있게
-// {code, message} 객체로 온다 (backend/app/api/chat.py 참고). 둘 다 처리한다.
-async function parseErrorBody(res: Response): Promise<{ message: string; code?: string }> {
+// detail은 대부분 평문 문자열이지만, 세션 만료류 에러는 프론트가 코드로 분기하고 남은 시간을
+// 표시할 수 있게 {code, message, available_at?} 객체로 온다 (backend/app/api/chat.py 참고).
+async function parseErrorBody(res: Response): Promise<{ message: string; code?: string; availableAt?: string }> {
   try {
     const body = await res.json();
     if (body.detail && typeof body.detail === "object") {
-      return { message: body.detail.message ?? res.statusText, code: body.detail.code };
+      return {
+        message: body.detail.message ?? res.statusText,
+        code: body.detail.code,
+        availableAt: body.detail.available_at,
+      };
     }
     return { message: body.detail ?? res.statusText };
   } catch {
@@ -39,8 +45,8 @@ async function parseErrorBody(res: Response): Promise<{ message: string; code?: 
 }
 
 async function toApiError(res: Response): Promise<ApiError> {
-  const { message, code } = await parseErrorBody(res);
-  return new ApiError(res.status, message, code);
+  const { message, code, availableAt } = await parseErrorBody(res);
+  return new ApiError(res.status, message, code, availableAt);
 }
 
 // ---------- 클라이언트(익명 세션) API ----------

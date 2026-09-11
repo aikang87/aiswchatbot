@@ -104,11 +104,14 @@ async def _check_session_limits(session: AsyncSession, conversation: Conversatio
 
     age = datetime.now(timezone.utc) - conversation.started_at
     if age > timedelta(hours=settings.session_max_age_hours):
+        # 자동 초기화(하드 리셋)까지 남은 시각 — 프론트가 "몇시간 몇분 후 다시 이용 가능"을 표시하는 데 쓴다.
+        available_at = conversation.started_at + timedelta(hours=settings.session_hard_reset_hours)
         raise HTTPException(
             status_code=403,
             detail={
                 "code": "session_soft_expired",
                 "message": f"세션 유지 시간({settings.session_max_age_hours}시간)이 지났습니다. 새 대화를 시작해주세요.",
+                "available_at": available_at.isoformat(),
             },
         )
 
