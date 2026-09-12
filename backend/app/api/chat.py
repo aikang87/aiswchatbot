@@ -110,7 +110,7 @@ async def _check_session_limits(session: AsyncSession, conversation: Conversatio
             status_code=403,
             detail={
                 "code": "session_soft_expired",
-                "message": f"세션 유지 시간({settings.session_max_age_hours}시간)이 지났습니다. 새 대화를 시작해주세요.",
+                "message": f"세션 유지 시간({settings.session_max_age_hours}시간)이 지났습니다. 체험 시간이 종료되었습니다.",
                 "available_at": available_at.isoformat(),
             },
         )
